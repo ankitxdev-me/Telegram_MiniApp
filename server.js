@@ -22,6 +22,11 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/admin", express.static(path.join(__dirname, "admin")));
 
+// Health check endpoint (for Render & keep-alive pingers like UptimeRobot)
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
 // Initialize database schema
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
@@ -786,6 +791,7 @@ app.post("/api/admin/tasks/:id/toggle", adminMiddleware, (req, res) => {
   res.json({ ok: true, active: newActive });
 });
 
+
 // Fallback to MiniApp SPA
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
@@ -793,60 +799,98 @@ app.use((req, res) => {
 
 app.listen(port, async () => {
   console.log(`🕷️ SPIDER Web Network server running on http://localhost:${port}`);
-  
-  let liveUrl = process.env.WEBAPP_URL || `http://localhost:${port}`;
-  try {
-    const { startTunnel } = await import("untun");
-    const tunnel = await startTunnel({ port });
-    const url = await tunnel.getURL();
-    if (url) {
-      liveUrl = url;
-      console.log(`🌐 Live Cloudflare HTTPS Tunnel active: ${liveUrl}`);
-      setWebAppUrl(liveUrl);
-      
-      // Keep .env in sync with active URL
-      try {
-        const envPath = path.join(__dirname, ".env");
-        if (fs.existsSync(envPath)) {
-          let envContent = fs.readFileSync(envPath, "utf8");
-          if (/WEBAPP_URL=/.test(envContent)) {
-            envContent = envContent.replace(/WEBAPP_URL=.*/, `WEBAPP_URL=${liveUrl}`);
-          } else {
-            envContent += `\nWEBAPP_URL=${liveUrl}\n`;
-          }
-          fs.writeFileSync(envPath, envContent);
-        }
-      } catch (err) {
-        console.warn("Could not sync .env:", err.message);
-      }
 
-      // Keep tonconnect-manifest.json in sync with live URL
-      try {
-        const manifestPath = path.join(__dirname, "public", "tonconnect-manifest.json");
-        const manifestData = {
-          url: liveUrl,
-          name: "SPIDER Web Network",
-          iconUrl: `${liveUrl}/assets/spider_logo.jpg`,
-          termsOfServiceUrl: `${liveUrl}`,
-          privacyPolicyUrl: `${liveUrl}`
-        };
-        fs.writeFileSync(manifestPath, JSON.stringify(manifestData, null, 2));
-      } catch (err) {
-        console.warn("Could not sync manifest:", err.message);
-      }
-    }
-  } catch (err) {
-    console.warn("Cloudflare tunnel notice, attempting fallback:", err.message);
+  // ─── Detect deployment platform ───────────────────────────────────────────
+  // Railway injects RAILWAY_PUBLIC_DOMAIN, Render injects RENDER_EXTERNAL_URL.
+  // When either is present we already have HTTPS — no tunnel needed.
+  const railwayDomain = process.env.RAILWAY_PUBLIC_DOMAIN;
+  const renderUrl     = process.env.RENDER_EXTERNAL_URL;
+  const envWebappUrl  = process.env.WEBAPP_URL;
+
+  let liveUrl =
+    envWebappUrl ||
+    (railwayDomain ? `https://${railwayDomain}` : null) ||
+    renderUrl ||
+    `http://localhost:${port}`;
+
+  const isCloudDeployment = !!(railwayDomain || renderUrl || (envWebappUrl && !envWebappUrl.includes("localhost")));
+
+  if (isCloudDeployment) {
+    // ── Running on Railway / Render / VPS with a real domain ──────────────
+    console.log(`🌐 Cloud deployment detected — HTTPS URL: ${liveUrl}`);
+    setWebAppUrl(liveUrl);
+
+    // Sync tonconnect-manifest.json with the live URL
     try {
-      const localtunnel = (await import("localtunnel")).default;
-      const tunnel = await localtunnel({ port });
-      if (tunnel?.url) {
-        liveUrl = tunnel.url;
-        console.log(`🌐 Live localtunnel HTTPS Tunnel active: ${liveUrl}`);
+      const manifestPath = path.join(__dirname, "public", "tonconnect-manifest.json");
+      const manifestData = {
+        url: liveUrl,
+        name: "SPIDER Web Network",
+        iconUrl: `${liveUrl}/assets/spider_logo.jpg`,
+        termsOfServiceUrl: liveUrl,
+        privacyPolicyUrl: liveUrl
+      };
+      fs.writeFileSync(manifestPath, JSON.stringify(manifestData, null, 2));
+    } catch (err) {
+      console.warn("Could not sync manifest:", err.message);
+    }
+
+  } else {
+    // ── Local dev — start Cloudflare tunnel ───────────────────────────────
+    console.log("Starting cloudflared tunnel to http://localhost:" + port);
+    try {
+      const { startTunnel } = await import("untun");
+      const tunnel = await startTunnel({ port });
+      const url = await tunnel.getURL();
+      if (url) {
+        liveUrl = url;
+        console.log(`🌐 Live Cloudflare HTTPS Tunnel active: ${liveUrl}`);
         setWebAppUrl(liveUrl);
+
+        // Keep .env in sync with active URL
+        try {
+          const envPath = path.join(__dirname, ".env");
+          if (fs.existsSync(envPath)) {
+            let envContent = fs.readFileSync(envPath, "utf8");
+            if (/WEBAPP_URL=/.test(envContent)) {
+              envContent = envContent.replace(/WEBAPP_URL=.*/, `WEBAPP_URL=${liveUrl}`);
+            } else {
+              envContent += `\nWEBAPP_URL=${liveUrl}\n`;
+            }
+            fs.writeFileSync(envPath, envContent);
+          }
+        } catch (err) {
+          console.warn("Could not sync .env:", err.message);
+        }
+
+        // Keep tonconnect-manifest.json in sync
+        try {
+          const manifestPath = path.join(__dirname, "public", "tonconnect-manifest.json");
+          const manifestData = {
+            url: liveUrl,
+            name: "SPIDER Web Network",
+            iconUrl: `${liveUrl}/assets/spider_logo.jpg`,
+            termsOfServiceUrl: liveUrl,
+            privacyPolicyUrl: liveUrl
+          };
+          fs.writeFileSync(manifestPath, JSON.stringify(manifestData, null, 2));
+        } catch (err) {
+          console.warn("Could not sync manifest:", err.message);
+        }
       }
-    } catch (e) {
-      console.log(`ℹ️ Running with URL: ${liveUrl}`);
+    } catch (err) {
+      console.warn("Cloudflare tunnel notice, attempting fallback:", err.message);
+      try {
+        const localtunnel = (await import("localtunnel")).default;
+        const tunnel = await localtunnel({ port });
+        if (tunnel?.url) {
+          liveUrl = tunnel.url;
+          console.log(`🌐 Live localtunnel HTTPS Tunnel active: ${liveUrl}`);
+          setWebAppUrl(liveUrl);
+        }
+      } catch (e) {
+        console.log(`ℹ️ Running with URL: ${liveUrl}`);
+      }
     }
   }
 
