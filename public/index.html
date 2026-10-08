@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>SPIDER Web Network - Telegram Mini App</title>
+  
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  
+  <!-- Official TON Connect UI SDK (Supports Telegram @wallet, Tonkeeper, etc.) -->
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  
+  <!-- Google Fonts for sleek gaming typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons for crisp UI accents -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="theme-dark">
+  <div id="app-container">
+    <!-- Telegram Verification Gatekeeper (Shown when opened directly outside Telegram) -->
+    <div id="telegramGatekeeper" class="tg-gatekeeper-overlay" style="display: none;">
+      <div class="tg-gatekeeper-card">
+        <div class="tg-gatekeeper-icon">
+          <i class="fa-brands fa-telegram"></i>
+        </div>
+        <h2>Telegram Login Required</h2>
+        <p class="tg-gatekeeper-desc">
+          Direct browser access is restricted. Telegram Mini Apps must be launched inside the official Telegram client to securely authenticate your account.
+        </p>
+        <div class="tg-gatekeeper-qr">
+          <div class="qr-box">
+            <i class="fa-solid fa-qrcode"></i>
+          </div>
+          <small>Scan with phone to open in Telegram</small>
+        </div>
+        <a href="https://t.me/TeleAAutomation_Bot" target="_blank" class="btn-primary-glow btn-block btn-lg tg-open-btn">
+          <i class="fa-solid fa-paper-plane"></i> Launch @TeleAAutomation_Bot
+        </a>
+        <div class="tg-bypass-box">
+          <button class="btn-subtle" id="devBypassBtn">
+            <i class="fa-solid fa-laptop-code"></i> Developer Mode: Preview UI as @SpiderMaster
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Global Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="user-avatar-badge skeleton skeleton-avatar" id="headerAvatarBtn" data-go="profile">
+          <img src="" alt="Avatar" class="avatar-img" id="headerAvatarImg" style="display: none;" onerror="this.style.display='none'; document.querySelector('#headerAvatarFallback').style.display='flex';" />
+          <div id="headerAvatarFallback" class="avatar-fallback"><i class="fa-solid fa-spider"></i></div>
+          <span class="online-indicator"></span>
+        </div>
+        <div class="brand-info">
+          <span class="brand-title">SPIDER</span>
+          <span class="brand-subtitle" id="userHandle"><span class="skeleton skeleton-text"></span></span>
+        </div>
+      </div>
+      <div class="header-right">
+        <a href="/admin" target="_blank" class="icon-btn admin-link-btn" title="Open Admin Panel">
+          <i class="fa-solid fa-gauge-high"></i>
+        </a>
+        <button class="icon-btn" id="notifBtn" title="Announcements">
+          <i class="fa-regular fa-bell"></i>
+          <span class="notif-dot"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Screens Viewport -->
+    <main class="main-viewport">
+      
+      <!-- SCREEN 1: HOME / DASHBOARD -->
+      <section id="screen-home" class="screen active">
+        <!-- Hero Spider Web Section -->
+        <div class="hero-web-container">
+          <div class="web-lines-bg"></div>
+          <div class="spider-emblem-wrapper" id="spiderTapBtn">
+            <div class="glow-ring glow-ring-1"></div>
+            <div class="glow-ring glow-ring-2"></div>
+            <div class="spider-emblem-badge" id="spiderEmblemBadge">
+              <svg class="spider-vector-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Glowing Cyber Web Lines -->
+                <path d="M50 4 L50 96 M4 50 L96 50 M17 17 L83 83 M17 83 L83 17" stroke="rgba(199, 125, 255, 0.4)" stroke-width="1.2" stroke-dasharray="2 2" />
+                <circle cx="50" cy="50" r="26" stroke="rgba(0, 245, 212, 0.5)" stroke-width="1.2" />
+                <circle cx="50" cy="50" r="41" stroke="rgba(157, 78, 221, 0.35)" stroke-width="1.2" />
+                
+                <!-- Spider Articulated Limbs -->
+                <path d="M42 42 L25 24 L10 32 M40 48 L16 48 L4 55 M42 54 L18 62 L10 76 M45 60 L26 80 L20 92" stroke="#c77dff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M58 42 L75 24 L90 32 M60 48 L84 48 L96 55 M58 54 L82 62 L90 76 M55 60 L74 80 L80 92" stroke="#c77dff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                
+                <!-- Head & Fangs -->
+                <ellipse cx="50" cy="38" rx="8" ry="7" fill="#1e1033" stroke="#00f5d4" stroke-width="1.8"/>
+                <path d="M47 43 L45 48 M53 43 L55 48" stroke="#00f5d4" stroke-width="1.5" stroke-linecap="round" />
+                
+                <!-- Glowing Cyan Eyes -->
+                <circle cx="47" cy="37" r="1.5" fill="#00f5d4" />
+                <circle cx="53" cy="37" r="1.5" fill="#00f5d4" />
+                
+                <!-- Abdomen Core -->
+                <ellipse cx="50" cy="58" rx="12" ry="16" fill="#130924" stroke="#ba53fc" stroke-width="2"/>
+                <path d="M50 48 L45 60 L50 70 L55 60 Z" fill="#9d4edd" />
+                <circle cx="50" cy="60" r="3" fill="#00f5d4" />
+              </svg>
+            </div>
+            <div class="tap-hint"><i class="fa-solid fa-hand-pointer"></i> Tap to Earn</div>
+          </div>
+        </div>
+
+        <!-- Stats Bar: Web Level & XP/Stars -->
+        <div class="stats-row-card">
+          <div class="stat-pill">
+            <span class="stat-label">Web Level</span>
+            <strong class="stat-val" id="statWebLevel"><span class="skeleton skeleton-num"></span></strong>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-pill">
+            <span class="stat-label">XP / Stars</span>
+            <strong class="stat-val stat-gold"><span id="statXP"><span class="skeleton skeleton-num"></span></span> <i class="fa-solid fa-star"></i></strong>
+          </div>
+        </div>
+
+        <!-- Daily Reward Banner -->
+        <div class="daily-reward-card">
+          <div class="daily-reward-content">
+            <div class="gift-icon-bubble">
+              <i class="fa-solid fa-gift"></i>
+            </div>
+            <div class="daily-reward-text">
+              <h4>Daily Reward</h4>
+              <p>Claim your daily check-in reward</p>
+            </div>
+          </div>
+          <button class="btn-primary-glow btn-sm" id="claimDailyBtn">Claim</button>
+        </div>
+
+        <!-- 14 Day Streak Tracker -->
+        <div class="streak-card">
+          <div class="streak-header">
+            <span><i class="fa-solid fa-fire text-flame"></i> <b id="streakCount">14</b> Day Streak</span>
+            <span class="streak-badge" id="streakStatus">Active</span>
+          </div>
+          <div class="streak-track" id="streakTrack">
+            <!-- 14 interactive streak dots rendered via JS -->
+          </div>
+        </div>
+
+        <!-- Quick Access 4-Grid -->
+        <div class="quick-access-section">
+          <span class="section-tag">Quick Access</span>
+          <div class="quick-grid">
+            <button class="quick-btn btn-qa-games" data-go="games">
+              <div class="qa-icon-wrap icon-purple"><i class="fa-solid fa-gamepad"></i></div>
+              <span>Games</span>
+            </button>
+            <button class="quick-btn btn-qa-tasks" data-go="tasks">
+              <div class="qa-icon-wrap icon-green"><i class="fa-solid fa-list-check"></i></div>
+              <span>Tasks</span>
+            </button>
+            <button class="quick-btn btn-qa-frens" data-go="frens">
+              <div class="qa-icon-wrap icon-orange"><i class="fa-solid fa-user-group"></i></div>
+              <span>Frens</span>
+            </button>
+            <button class="quick-btn btn-qa-nft" data-go="nft">
+              <div class="qa-icon-wrap icon-blue"><i class="fa-solid fa-gem"></i></div>
+              <span>NFT Hub</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Top Global Rank Banner -->
+        <div class="rank-banner-card" data-go="leaderboard">
+          <div class="rank-banner-left">
+            <div class="trophy-wrap">
+              <i class="fa-solid fa-trophy text-gold"></i>
+            </div>
+            <div>
+              <small>Top Global Rank</small>
+              <div class="rank-num">#<span id="homeRankVal">1</span> <i class="fa-solid fa-star text-gold-sm"></i></div>
+            </div>
+          </div>
+          <button class="btn-subtle" data-go="leaderboard">View Leaderboard <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </section>
+
+      <!-- SCREEN 2: GAMES (SPIDER TIC-TAC-TOE & WEB JUMP) -->
+      <section id="screen-games" class="screen">
+        <div class="screen-sub-header">
+          <button class="back-btn"><i class="fa-solid fa-chevron-left"></i></button>
+          <h2>Spider Tic-Tac-Toe</h2>
+          <button class="icon-btn-ghost" id="gameHistoryBtn"><i class="fa-solid fa-clock-rotate-left"></i></button>
+        </div>
+
+        <!-- VS Header Card -->
+        <div class="ttt-match-card">
+          <div class="fighter-side fighter-you">
+            <div class="fighter-avatar spider-icon-glow">🕷️</div>
+            <span class="fighter-name">You</span>
+            <small class="fighter-symbol">Spider (X)</small>
+          </div>
+          <div class="match-vs-tag">VS</div>
+          <div class="fighter-side fighter-bot">
+            <div class="fighter-avatar web-icon-glow">🕸️</div>
+            <span class="fighter-name">Opponent</span>
+            <small class="fighter-symbol">Web (O)</small>
+          </div>
+        </div>
+
+        <!-- Match Status Banner -->
+        <div class="game-turn-banner" id="gameStatusBanner">
+          <span class="pulse-dot"></span>
+          <span id="gameStatusText">Your Turn (Spider)</span>
+        </div>
+
+        <!-- 3x3 Tic Tac Toe Grid -->
+        <div class="ttt-board-container">
+          <div class="ttt-board" id="tttBoard">
+            <button class="ttt-cell" data-index="0"></button>
+            <button class="ttt-cell" data-index="1"></button>
+            <button class="ttt-cell" data-index="2"></button>
+            <button class="ttt-cell" data-index="3"></button>
+            <button class="ttt-cell" data-index="4"></button>
+            <button class="ttt-cell" data-index="5"></button>
+            <button class="ttt-cell" data-index="6"></button>
+            <button class="ttt-cell" data-index="7"></button>
+            <button class="ttt-cell" data-index="8"></button>
+          </div>
+        </div>
+
+        <!-- Game Rewards Policy Summary -->
+        <div class="game-rules-card">
+          <div class="rule-chip"><span class="chip-label">Win:</span> <b>+50 XP</b> <span class="text-gold">+10 ⭐</span></div>
+          <div class="rule-chip"><span class="chip-label">Draw:</span> <b>+10 XP</b></div>
+          <div class="rule-chip"><span class="chip-label">Loss:</span> <b>+5 XP</b></div>
+        </div>
+
+        <!-- Daily Limit & Controls -->
+        <div class="game-controls-area">
+          <div class="matches-left-indicator">
+            <i class="fa-solid fa-gamepad"></i> Daily Matches Left: <strong id="matchesLeftCount">3/5</strong>
+          </div>
+          <button class="btn-primary-glow btn-block" id="newMatchBtn">
+            <i class="fa-solid fa-rotate-right"></i> New Match
+          </button>
+        </div>
+
+        <!-- Game History Accordion -->
+        <div class="history-accordion">
+          <button class="history-toggle-btn" id="toggleHistoryBtn">
+            <span><i class="fa-solid fa-scroll"></i> Match History</span>
+            <i class="fa-solid fa-chevron-down" id="histChevron"></i>
+          </button>
+          <div class="history-list" id="gameHistoryList">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 3: TASKS & MISSIONS -->
+      <section id="screen-tasks" class="screen">
+        <div class="screen-sub-header">
+          <button class="back-btn"><i class="fa-solid fa-chevron-left"></i></button>
+          <h2>Tasks & Missions</h2>
+          <span class="sub-counter" id="completedTasksTag">12 Completed</span>
+        </div>
+
+        <!-- Category Tabs -->
+        <div class="pill-tabs-nav">
+          <button class="pill-tab active" data-task-tab="daily">Daily</button>
+          <button class="pill-tab" data-task-tab="weekly">Weekly</button>
+          <button class="pill-tab" data-task-tab="special">Special</button>
+        </div>
+
+        <!-- Tasks List Container -->
+        <div class="tasks-container" id="tasksList">
+          <!-- Dynamically loaded from /api/tasks -->
+        </div>
+
+        <!-- Completed Tasks Footer Banner -->
+        <div class="completed-summary-bar">
+          <span><i class="fa-solid fa-circle-check text-green"></i> Completed Tasks</span>
+          <strong id="completedCountDisplay">12 &gt;</strong>
+        </div>
+      </section>
+
+      <!-- SCREEN 4: FRIENDS & REFERRAL (FRENS) -->
+      <section id="screen-frens" class="screen">
+        <div class="screen-sub-header">
+          <button class="back-btn"><i class="fa-solid fa-chevron-left"></i></button>
+          <h2>Frens & Referral</h2>
+          <button class="icon-btn-ghost" id="refreshFrensBtn"><i class="fa-solid fa-arrows-rotate"></i></button>
+        </div>
+
+        <!-- Referral Code & Link Box -->
+        <div class="ref-boxes-wrap">
+          <div class="ref-field-card">
+            <span class="ref-field-label">Your Referral Code</span>
+            <div class="ref-input-group">
+              <strong class="ref-code-value" id="refCodeText">SPIDER24</strong>
+              <button class="btn-copy" id="copyCodeBtn" title="Copy Code">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="ref-field-card">
+            <span class="ref-field-label">Your Referral Link</span>
+            <div class="ref-input-group">
+              <span class="ref-link-value" id="refLinkText">t.me/TeleAAutomation_Bot?start=...</span>
+              <button class="btn-copy" id="copyLinkBtn" title="Copy Link">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Big Share Link CTA -->
+          <button class="btn-primary-glow btn-block btn-lg" id="shareTelegramLinkBtn">
+            <i class="fa-solid fa-paper-plane"></i> Share Link
+          </button>
+        </div>
+
+        <!-- Friends Stats Cards Row -->
+        <div class="frens-stats-grid">
+          <div class="fren-stat-card">
+            <span class="fren-stat-label">Total Friends</span>
+            <strong class="fren-stat-val" id="totalFriendsVal">128</strong>
+          </div>
+          <div class="fren-stat-card">
+            <span class="fren-stat-label">Active Friends</span>
+            <strong class="fren-stat-val text-green" id="activeFriendsVal">87</strong>
+          </div>
+          <div class="fren-stat-card fren-earnings-card">
+            <span class="fren-stat-label">Referral Earnings</span>
+            <strong class="fren-stat-val text-gold"><span id="referralEarningsVal">1,240</span> <i class="fa-solid fa-star"></i></strong>
+          </div>
+        </div>
+
+        <!-- Referral Leaderboard -->
+        <div class="ref-leaderboard-card">
+          <div class="card-title-bar">
+            <span><i class="fa-solid fa-ranking-star text-gold"></i> Referral Leaderboard</span>
+          </div>
+          <div class="ref-list" id="refLeaderboardList">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 5: WALLET -->
+      <section id="screen-wallet" class="screen">
+        <div class="screen-sub-header">
+          <button class="back-btn"><i class="fa-solid fa-chevron-left"></i></button>
+          <h2>Wallet</h2>
+          <span class="wallet-badge-connected" id="walletStatusBadge">
+            <span class="pulse-dot-green"></span> Connected
+          </span>
+        </div>
+
+        <!-- TON (@wallet & Tonkeeper) Connect Card -->
+        <div class="ton-connect-card" id="tonWalletCard">
+          <div class="ton-card-header">
+            <div class="ton-brand">
+              <div class="ton-diamond-icon" style="background: rgba(0, 152, 234, 0.2); border-color: #0098ea; color: #0098ea;">
+                <i class="fa-solid fa-gem"></i>
+              </div>
+              <div>
+                <strong>Telegram TON Wallet</strong>
+                <small id="walletStatusBadge"><span class="pulse-dot-green"></span> @wallet & Tonkeeper</small>
+              </div>
+            </div>
+            <a href="https://t.me/wallet" target="_blank" class="btn-sm btn-subtle" title="Open Telegram @wallet bot" style="display:flex; align-items:center; gap:5px; color:#0098ea;">
+              <i class="fa-brands fa-telegram"></i> @wallet
+            </a>
+          </div>
+
+          <!-- Connected State View -->
+          <div id="walletConnectedView" style="display:none;">
+            <div class="wallet-address-bar">
+              <span class="addr-text" id="walletAddrTrunc">Not connected</span>
+              <button class="btn-copy-sm" id="copyWalletAddrBtn" title="Copy Address">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+              <span style="font-size:11px; color:var(--accent-cyan);"><i class="fa-solid fa-circle-check text-green"></i> Verified The Open Network</span>
+              <button class="btn-sm btn-subtle text-danger" id="disconnectWalletBtn" style="padding:4px 10px; font-size:11px;">Disconnect</button>
+            </div>
+          </div>
+
+          <!-- Disconnected / Connect State View -->
+          <div id="walletConnectForm" style="display:block; margin-top:14px;">
+            <!-- Official TonConnect UI Button Mount Point -->
+            <div id="ton-connect-btn" style="margin-bottom:12px; display:flex; justify-content:center;"></div>
+
+            <!-- Manual TON Address Input & Paste Backup -->
+            <div class="ref-input-group" style="margin-bottom:10px;">
+              <input type="text" id="tonAddressInput" placeholder="Or paste TON address (UQ... / EQ...)" style="flex:1; background:transparent; border:0; color:#fff; font-family:var(--font-mono); font-size:12px; outline:none;" />
+              <button class="btn-copy" id="pasteTonBtn" title="Paste from clipboard">
+                <i class="fa-regular fa-paste"></i>
+              </button>
+            </div>
+            <button class="btn-primary-glow btn-block btn-sm" id="connectTonManualBtn">
+              <i class="fa-solid fa-link"></i> Link TON Address (+100 XP)
+            </button>
+          </div>
+        </div>
+
+        <!-- Balances Grid (TON & USDT Jetton) -->
+        <div class="wallet-balance-grid">
+          <div class="balance-tile">
+            <div class="balance-icon-wrap" style="background:rgba(0, 152, 234, 0.18); color:#0098ea;"><i class="fa-solid fa-gem"></i></div>
+            <div>
+              <span class="balance-title">TON Balance</span>
+              <strong class="balance-amount" id="tonBalanceVal">0.00 TON</strong>
+            </div>
+            <i class="fa-solid fa-chevron-right tile-arrow"></i>
+          </div>
+
+          <div class="balance-tile">
+            <div class="balance-icon-wrap icon-green"><i class="fa-solid fa-dollar-sign"></i></div>
+            <div>
+              <span class="balance-title">USDT (TON Jetton)</span>
+              <strong class="balance-amount" id="usdtBalanceVal">0.00 USDT</strong>
+            </div>
+            <i class="fa-solid fa-chevron-right tile-arrow"></i>
+          </div>
+        </div>
+
+        <!-- Action Items Menu -->
+        <div class="profile-menu-list">
+          <button class="menu-item-row" id="viewTxHistoryBtn">
+            <div class="menu-left"><i class="fa-solid fa-receipt text-purple"></i> <span>Transaction History</span></div>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button class="menu-item-row" data-go="nft">
+            <div class="menu-left"><i class="fa-solid fa-boxes-stacked text-blue"></i> <span>My NFTs</span></div>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button class="menu-item-row" id="sendReceiveBtn">
+            <div class="menu-left"><i class="fa-solid fa-arrows-up-down text-gold"></i> <span>Send / Receive</span></div>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- SCREEN 6: NFT HUB (USDT) -->
+      <section id="screen-nft" class="screen">
+        <div class="screen-sub-header">
+          <button class="back-btn"><i class="fa-solid fa-chevron-left"></i></button>
+          <h2>NFT Hub (USDT)</h2>
+          <span class="nft-usdt-balance"><i class="fa-solid fa-wallet"></i> <span id="nftWalletBalance">245.85</span> USDT</span>
+        </div>
+
+        <!-- Hub Navigation Tabs -->
+        <div class="pill-tabs-nav">
+          <button class="pill-tab active" data-nft-tab="explore">Explore</button>
+          <button class="pill-tab" data-nft-tab="my_nfts">My NFTs</button>
+          <button class="pill-tab" data-nft-tab="listed">Listed</button>
+        </div>
+
+        <!-- Rarity Filters -->
+        <div class="rarity-filter-bar">
+          <button class="rarity-pill active" data-rarity="all">All</button>
+          <button class="rarity-pill" data-rarity="Common">Common</button>
+          <button class="rarity-pill" data-rarity="Rare">Rare</button>
+          <button class="rarity-pill" data-rarity="Epic">Epic</button>
+          <button class="rarity-pill" data-rarity="Legendary">Legendary</button>
+        </div>
+
+        <!-- 2-Column NFT Cards Grid -->
+        <div class="nft-cards-grid" id="nftCardsGrid">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <div class="nft-footer-action">
+          <button class="btn-primary-glow btn-block" id="connectWalletToBuyBtn">
+            <i class="fa-solid fa-wallet"></i> Connect Wallet to Buy
+          </button>
+        </div>
+      </section>
+
+      <!-- SCREEN 7: PROFILE -->
+      <section id="screen-profile" class="screen">
+        <div class="screen-sub-header">
+          <button class="back-btn"><i class="fa-solid fa-chevron-left"></i></button>
+          <h2>Profile</h2>
+          <button class="icon-btn-ghost" id="profileSettingsBtn"><i class="fa-solid fa-gear"></i></button>
+        </div>
+
+        <!-- Profile Hero Avatar Card -->
+        <div class="profile-hero-card">
+          <div class="profile-avatar-wrapper">
+            <img src="/assets/spider_avatar.jpg" alt="SpiderMaster" class="profile-avatar-img" />
+            <div class="avatar-ring"></div>
+          </div>
+          <h3 class="profile-display-name" id="profileName">SpiderMaster</h3>
+          <span class="profile-handle" id="profileHandle">@spidermaster</span>
+          <div class="top-global-badge">TOP GLOBAL #<span id="profileRankNum">245</span></div>
+        </div>
+
+        <!-- Level & XP Progress Card -->
+        <div class="level-progress-card">
+          <div class="level-header">
+            <div>
+              <span class="card-caption">Web Level</span>
+              <strong class="level-num" id="profileLevel">12</strong>
+            </div>
+            <div class="xp-ratio">
+              <span class="card-caption">XP</span>
+              <strong id="profileXPVal">8,450 / 10,000</strong>
+            </div>
+          </div>
+          <div class="xp-bar-container">
+            <div class="xp-bar-fill" id="profileXPBar" style="width: 84.5%;"></div>
+          </div>
+        </div>
+
+        <!-- Profile Mini Stats -->
+        <div class="profile-stats-triple">
+          <div class="triple-stat">
+            <span class="triple-label">Friends</span>
+            <strong class="triple-val" id="profileFriendsCount">128</strong>
+          </div>
+          <div class="triple-divider"></div>
+          <div class="triple-stat">
+            <span class="triple-label">Games</span>
+            <strong class="triple-val" id="profileGamesCount">46</strong>
+          </div>
+          <div class="triple-divider"></div>
+          <div class="triple-stat">
+            <span class="triple-label">Tasks</span>
+            <strong class="triple-val" id="profileTasksCount">82</strong>
+          </div>
+        </div>
+
+        <!-- 14 Day Streak In Profile -->
+        <div class="streak-card">
+          <div class="streak-header">
+            <span><i class="fa-solid fa-fire text-flame"></i> 14 Day Streak</span>
+            <i class="fa-solid fa-gift text-gold"></i>
+          </div>
+          <div class="streak-track" id="profileStreakTrack">
+            <!-- Cloned or synced streak dots -->
+          </div>
+        </div>
+
+        <!-- Profile Navigation List -->
+        <div class="profile-menu-list">
+          <button class="menu-item-row" data-go="language">
+            <div class="menu-left"><i class="fa-solid fa-globe text-cyan"></i> <span>Language</span></div>
+            <div class="menu-right-text"><span id="currentLangLabel">English</span> <i class="fa-solid fa-chevron-right"></i></div>
+          </button>
+          <button class="menu-item-row" data-go="nft">
+            <div class="menu-left"><i class="fa-solid fa-cubes text-purple"></i> <span>My NFT Collection</span></div>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button class="menu-item-row" data-go="wallet">
+            <div class="menu-left"><i class="fa-solid fa-wallet text-green"></i> <span>Wallet</span></div>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button class="menu-item-row" id="menuRewardHistBtn">
+            <div class="menu-left"><i class="fa-solid fa-clock-rotate-left text-gold"></i> <span>Reward History</span></div>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button class="menu-item-row" data-go="leaderboard">
+            <div class="menu-left"><i class="fa-solid fa-trophy text-orange"></i> <span>Global Ranking</span></div>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button class="menu-item-row" id="menuSettingsBtn">
+            <div class="menu-left"><i class="fa-solid fa-sliders text-pink"></i> <span>Settings</span></div>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- SCREEN 8: LANGUAGE -->
+      <section id="screen-language" class="screen">
+        <div class="screen-sub-header">
+          <button class="back-btn"><i class="fa-solid fa-chevron-left"></i></button>
+          <h2>Language</h2>
+          <span></span>
+        </div>
+
+        <div class="language-options-list">
+          <button class="lang-option-card active" data-lang="en">
+            <div class="lang-left">
+              <span class="flag-icon">🇬🇧</span>
+              <div>
+                <strong>English</strong>
+                <small>English</small>
+              </div>
+            </div>
+            <i class="fa-solid fa-circle-check lang-check"></i>
+          </button>
+
+          <button class="lang-option-card" data-lang="hi">
+            <div class="lang-left">
+              <span class="flag-icon">🇮🇳</span>
+              <div>
+                <strong>Hindi</strong>
+                <small>हिन्दी</small>
+              </div>
+            </div>
+            <i class="fa-solid fa-circle-check lang-check"></i>
+          </button>
+
+          <button class="lang-option-card" data-lang="ar">
+            <div class="lang-left">
+              <span class="flag-icon">🇸🇦</span>
+              <div>
+                <strong>Arabic</strong>
+                <small>العربية</small>
+              </div>
+            </div>
+            <i class="fa-solid fa-circle-check lang-check"></i>
+          </button>
+
+          <button class="lang-option-card" data-lang="es">
+            <div class="lang-left">
+              <span class="flag-icon">🇪🇸</span>
+              <div>
+                <strong>Spanish</strong>
+                <small>Español</small>
+              </div>
+            </div>
+            <i class="fa-solid fa-circle-check lang-check"></i>
+          </button>
+
+          <button class="lang-option-card" data-lang="ru">
+            <div class="lang-left">
+              <span class="flag-icon">🇷🇺</span>
+              <div>
+                <strong>Russian</strong>
+                <small>Русский</small>
+              </div>
+            </div>
+            <i class="fa-solid fa-circle-check lang-check"></i>
+          </button>
+
+          <button class="lang-option-card" data-lang="tr">
+            <div class="lang-left">
+              <span class="flag-icon">🇹🇷</span>
+              <div>
+                <strong>Turkish</strong>
+                <small>Türkçe</small>
+              </div>
+            </div>
+            <i class="fa-solid fa-circle-check lang-check"></i>
+          </button>
+        </div>
+
+        <div class="lang-footer-hint">
+          <i class="fa-solid fa-sparkles"></i> More languages coming soon...
+        </div>
+      </section>
+
+      <!-- SCREEN 9: GLOBAL RANKING (LEADERBOARD) -->
+      <section id="screen-leaderboard" class="screen">
+        <div class="screen-sub-header">
+          <button class="back-btn"><i class="fa-solid fa-chevron-left"></i></button>
+          <h2>Global Ranking</h2>
+          <button class="icon-btn-ghost" id="refreshLeaderboardBtn"><i class="fa-solid fa-rotate"></i></button>
+        </div>
+
+        <!-- Leaderboard Tabs -->
+        <div class="pill-tabs-nav">
+          <button class="pill-tab active" data-rank-tab="global">Top Global</button>
+          <button class="pill-tab" data-rank-tab="friends">Top Friends</button>
+          <button class="pill-tab" data-rank-tab="referrals">Top Referrals</button>
+        </div>
+
+        <!-- Top 3 Podium Visual Display (Rendered dynamically) -->
+        <div class="podium-stage" id="podiumStage">
+          <!-- Populated dynamically via loadLeaderboard() -->
+        </div>
+
+        <!-- Rank List (Ranks 4+) -->
+        <div class="ranks-list" id="globalRanksList">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar (5 Core Tabs) -->
+    <nav class="app-bottom-nav">
+      <button class="nav-tab active" data-go="home">
+        <i class="fa-solid fa-house"></i>
+        <span>Home</span>
+      </button>
+      <button class="nav-tab" data-go="games">
+        <i class="fa-solid fa-gamepad"></i>
+        <span>Games</span>
+      </button>
+      <button class="nav-tab" data-go="tasks">
+        <i class="fa-solid fa-list-check"></i>
+        <span>Tasks</span>
+      </button>
+      <button class="nav-tab" data-go="frens">
+        <i class="fa-solid fa-user-group"></i>
+        <span>Frens</span>
+      </button>
+      <button class="nav-tab" data-go="profile">
+        <i class="fa-solid fa-user"></i>
+        <span>Profile</span>
+      </button>
+    </nav>
+
+    <!-- Modal: Modals & Drawers -->
+    <div class="modal-backdrop" id="genericModal">
+      <div class="modal-dialog">
+        <div class="modal-head">
+          <h3 id="modalTitle">Notice</h3>
+          <button class="btn-close-modal" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" id="modalBody">
+          <!-- Modal content inserted via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Tap Particle Container -->
+    <div id="tapParticlesLayer"></div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

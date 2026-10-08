@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Environment secrets (NEVER commit)
+.env
+
+# SQLite database (local data)
+spider.db
+
+# Cached user avatars (downloaded at runtime)
+public/avatars/
+
+# Auto-generated tonconnect manifest (URL changes per tunnel)
+# Note: committed with placeholder; server rewrites URL at startup
+
+# OS & editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
