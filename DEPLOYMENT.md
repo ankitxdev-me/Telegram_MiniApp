@@ -21,13 +21,14 @@ Make sure the latest code with `render.yaml` is pushed to GitHub:
 4. Render will read `render.yaml` automatically and configure:
    - **Environment**: Node
    - **Build Command**: `npm install`
-   - **Start Command**: `node server.js`
+   - **Start Command**: `npm start` (or `node --experimental-sqlite server.js`)
    - **Node Version**: `22.12.0`
 
 ### 3. Add Environment Variables
 In the Render dashboard under **Environment**:
 | Key | Value | Description |
 |---|---|---|
+| `NODE_OPTIONS` | `--experimental-sqlite` | Enables Node 22 built-in SQLite |
 | `TELEGRAM_BOT_TOKEN` | `8819908073:AAFdozj8rEd-zHhGP_b_2g0u7OQKbt3Inj8` | Your Telegram Bot Token |
 | `ADMIN_PASSWORD` | `spider123` | Password for `/admin` panel |
 
