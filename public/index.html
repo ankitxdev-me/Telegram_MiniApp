@@ -11,6 +11,9 @@
   <!-- Official TON Connect UI SDK (Supports Telegram @wallet, Tonkeeper, etc.) -->
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   
+  <!-- Adsgram SDK for Telegram Mini App Rewarded Ads & Sponsor Tasks -->
+  <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+  
   <!-- Google Fonts for sleek gaming typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -79,6 +82,19 @@
       
       <!-- SCREEN 1: HOME / DASHBOARD -->
       <section id="screen-home" class="screen active">
+        <!-- Storyline Chapter & Evolution Header -->
+        <div class="story-chapter-card" id="storyChapterCard">
+          <div class="story-chapter-header">
+            <span class="chapter-tag" id="chapterTag"><i class="fa-solid fa-dna text-cyan"></i> CHAPTER 1</span>
+            <span class="chapter-name" id="chapterName">Glitch Spider</span>
+          </div>
+          <div class="chapter-desc" id="chapterDesc">Repair corrupted web nodes to evolve into Cyber Weaver</div>
+          <div class="chapter-progress-wrap">
+            <div class="chapter-progress-bar"><div class="chapter-progress-fill" id="chapterProgressFill" style="width: 20%;"></div></div>
+            <span class="chapter-progress-label" id="chapterProgressLabel">Level 1/5 ➔ Next: Cyber Weaver</span>
+          </div>
+        </div>
+
         <!-- Hero Spider Web Section -->
         <div class="hero-web-container">
           <div class="web-lines-bg"></div>
@@ -127,6 +143,94 @@
           </div>
         </div>
 
+        <!-- Keys & Tickets Pocket Bar -->
+        <div class="keys-row-card">
+          <div class="key-pill" title="Common Case Keys">
+            <i class="fa-solid fa-key text-cyan"></i> <span id="statCommonKeys">3</span> <small>Glitch</small>
+          </div>
+          <div class="key-pill" title="Venom Case Keys">
+            <i class="fa-solid fa-key text-purple"></i> <span id="statVenomKeys">1</span> <small>Venom</small>
+          </div>
+          <div class="key-pill" title="Golden Case Keys">
+            <i class="fa-solid fa-key text-gold"></i> <span id="statGoldKeys">0</span> <small>Gold</small>
+          </div>
+          <div class="key-pill pill-ticket" title="Community Giveaway Tickets">
+            <i class="fa-solid fa-ticket text-orange"></i> <span id="statGiveawayTickets">0</span> <small>Tickets</small>
+          </div>
+        </div>
+
+        <!-- Community Giveaway Prize Pool Banner -->
+        <div class="giveaway-pool-card" id="openGiveawayBtn">
+          <div class="giveaway-header">
+            <div class="giveaway-title-wrap">
+              <span class="giveaway-pulse"></span>
+              <h4>Community Giveaway Pool</h4>
+            </div>
+            <span class="giveaway-badge"><i class="fa-solid fa-gift"></i> Live Draw</span>
+          </div>
+          <div class="giveaway-amounts">
+            <div class="giveaway-amount-main">$250.00 USDT</div>
+            <div class="giveaway-amount-sub">~ 100.00 TON</div>
+          </div>
+          <div class="giveaway-footer">
+            <span><i class="fa-solid fa-ticket text-orange"></i> Your Tickets: <b id="userTicketsVal">0</b></span>
+            <span class="giveaway-countdown-text"><i class="fa-regular fa-clock"></i> Weekly Draw: <b id="giveawayCountdownVal">Sun 23:59</b></span>
+          </div>
+        </div>
+
+        <!-- Sponsor Fast-Pass / Watch & Earn Card (Zero Friction Adsgram) -->
+        <div class="sponsor-ad-card" id="sponsorAdCard">
+          <div class="sponsor-ad-left">
+            <div class="ad-play-bubble">
+              <i class="fa-solid fa-clapperboard"></i>
+            </div>
+            <div>
+              <h4>Sponsor Fast-Pass</h4>
+              <p>+1 Case Key 🔑 & +50 XP & +1 Ticket 🎟️</p>
+            </div>
+          </div>
+          <div class="sponsor-ad-right">
+            <span class="ad-counter-badge" id="adCounterBadge">5/5 Left</span>
+            <button class="btn-primary-glow btn-sm" id="watchSponsorAdBtn">
+              <i class="fa-solid fa-play"></i> Watch
+            </button>
+          </div>
+        </div>
+
+        <!-- Spider Mystery Cases Section (Gacha Engine) -->
+        <div class="mystery-cases-section" id="casesSection">
+          <div class="section-header-flex">
+            <span class="section-tag"><i class="fa-solid fa-box-open text-purple"></i> Spider Mystery Cases</span>
+            <span class="cases-opened-tag" id="casesOpenedTag">0 Opened</span>
+          </div>
+          <div class="cases-grid">
+            <!-- Common Case -->
+            <div class="case-card case-common">
+              <div class="case-glow-bg"></div>
+              <div class="case-icon-box">📦</div>
+              <div class="case-name">Glitch Case</div>
+              <div class="case-cost"><i class="fa-solid fa-key text-cyan"></i> 1 Key / 50 XP</div>
+              <button class="btn-case-open btn-case-common" data-case="common">OPEN</button>
+            </div>
+            <!-- Venom Case -->
+            <div class="case-card case-venom">
+              <div class="case-glow-bg"></div>
+              <div class="case-icon-box">🧪</div>
+              <div class="case-name">Cyber Venom</div>
+              <div class="case-cost"><i class="fa-solid fa-key text-purple"></i> 1 Key / 250 XP</div>
+              <button class="btn-case-open btn-case-venom" data-case="venom">OPEN</button>
+            </div>
+            <!-- Gold Case -->
+            <div class="case-card case-gold">
+              <div class="case-glow-bg"></div>
+              <div class="case-icon-box">👑</div>
+              <div class="case-name">Golden Matrix</div>
+              <div class="case-cost"><i class="fa-solid fa-key text-gold"></i> 1 Key / 1K XP</div>
+              <button class="btn-case-open btn-case-gold" data-case="gold">OPEN</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Daily Reward Banner -->
         <div class="daily-reward-card">
           <div class="daily-reward-content">
@@ -152,13 +256,17 @@
           </div>
         </div>
 
-        <!-- Quick Access 4-Grid -->
+        <!-- Quick Access 5-Grid -->
         <div class="quick-access-section">
           <span class="section-tag">Quick Access</span>
-          <div class="quick-grid">
+          <div class="quick-grid quick-grid-5">
             <button class="quick-btn btn-qa-games" data-go="games">
               <div class="qa-icon-wrap icon-purple"><i class="fa-solid fa-gamepad"></i></div>
               <span>Games</span>
+            </button>
+            <button class="quick-btn btn-qa-cases" id="qaCasesBtn">
+              <div class="qa-icon-wrap icon-gold"><i class="fa-solid fa-box-open"></i></div>
+              <span>Cases</span>
             </button>
             <button class="quick-btn btn-qa-tasks" data-go="tasks">
               <div class="qa-icon-wrap icon-green"><i class="fa-solid fa-list-check"></i></div>
@@ -722,6 +830,86 @@
         </div>
         <div class="modal-body" id="modalBody">
           <!-- Modal content inserted via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Case Opening Horizontal Roulette Modal (CS:GO / FrogCase Style) -->
+    <div class="modal-backdrop" id="caseRouletteModal">
+      <div class="modal-dialog case-dialog">
+        <div class="modal-head">
+          <h3 id="caseModalTitle"><i class="fa-solid fa-box-open text-purple"></i> Spider Mystery Case</h3>
+          <button class="btn-close-modal" id="caseModalCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body case-modal-body">
+          <div class="case-preview-card" id="casePreviewCard">
+            <div class="case-preview-icon" id="casePreviewIcon">📦</div>
+            <h4 id="casePreviewName">Glitch Case</h4>
+            <p id="casePreviewDesc">Contains XP, Stars, Venom Keys & Jackpot tickets!</p>
+            <div class="case-open-actions">
+              <button class="btn-primary-glow btn-lg btn-block" id="startCaseSpinBtn">
+                <i class="fa-solid fa-key"></i> Open Case
+              </button>
+              <button class="btn-subtle btn-block" id="openWithXPBtn">
+                Use XP instead
+              </button>
+            </div>
+          </div>
+
+          <!-- The Roulette Spinner Reel -->
+          <div class="case-roulette-container" id="caseRouletteContainer" style="display:none;">
+            <div class="roulette-indicator-top">▼</div>
+            <div class="roulette-window">
+              <div class="roulette-reel" id="rouletteReel">
+                <!-- Dynamically populated 40 items -->
+              </div>
+            </div>
+            <div class="roulette-indicator-bottom">▲</div>
+            <div class="case-status-text" id="caseStatusText">Decrypting Web Node...</div>
+          </div>
+
+          <!-- Won Item Celebration View -->
+          <div class="case-win-banner" id="caseWinBanner" style="display:none;">
+            <div class="win-icon-glow" id="winIconGlow">⭐</div>
+            <span class="win-tag" id="winRarityTag">RARE LOOT</span>
+            <h3 id="winItemName">+100 XP</h3>
+            <p id="winItemDetails">Added to your Spider account!</p>
+            <button class="btn-primary-glow btn-block btn-lg" id="claimCaseLootBtn">Collect Loot</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Community Giveaway Pool Modal -->
+    <div class="modal-backdrop" id="giveawayModal">
+      <div class="modal-dialog giveaway-dialog">
+        <div class="modal-head">
+          <h3><i class="fa-solid fa-gift text-gold"></i> Community Giveaway</h3>
+          <button class="btn-close-modal" id="giveawayModalCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body giveaway-modal-body">
+          <div class="giveaway-hero-box">
+            <span class="giveaway-hero-badge">SPONSORED BY COMMUNITY AD REVENUE</span>
+            <h2>$250.00 USDT</h2>
+            <div class="ton-equiv">~ 100.00 TON</div>
+            <p>Every ad watched and case opened funds this real prize pool distributed directly to users' TON Wallets!</p>
+          </div>
+          <div class="giveaway-user-stat-card">
+            <div class="user-ticket-count">
+              <i class="fa-solid fa-ticket text-orange"></i>
+              <div>
+                <span class="label">Your Tickets</span>
+                <strong id="giveawayModalUserTickets">0 Tickets</strong>
+              </div>
+            </div>
+            <button class="btn-primary-glow btn-sm" id="giveawayGetTicketsBtn">Get More Tickets</button>
+          </div>
+          <div class="winners-list-section">
+            <div class="section-tag"><i class="fa-solid fa-trophy text-gold"></i> Recent Winners (Paid in TON)</div>
+            <div class="winners-list" id="giveawayWinnersList">
+              <!-- Populated by JS -->
+            </div>
+          </div>
         </div>
       </div>
     </div>

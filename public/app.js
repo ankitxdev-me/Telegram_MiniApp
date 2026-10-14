@@ -206,6 +206,9 @@ async function initApp() {
   setupSpiderTap();
   setupTicTacToe();
   setupDailyStreak();
+  setupMysteryCases();
+  setupGiveawayPool();
+  setupSponsorAds();
   setupLanguageSelector();
   setupLeaderboardTabs();
   setupModals();
@@ -349,8 +352,53 @@ function syncHomeUI() {
 
   $("#streakCount").textContent = currentUser.streak || 0;
 
-  // Check if claimed today
+  // Storyline Chapter & Evolution Stage (Like Hamster Game Dev & RichDog)
+  const level = currentUser.level || 1;
+  const chapter = currentUser.spider_chapter || (level >= 31 ? 4 : level >= 16 ? 3 : level >= 6 ? 2 : 1);
+  const chapterData = {
+    1: { tag: "CHAPTER 1", name: "Glitch Spider", desc: "Repair corrupted web nodes to evolve into Cyber Weaver", maxLvl: 5 },
+    2: { tag: "CHAPTER 2", name: "Cyber Weaver", desc: "Weave high-speed fiber data lines to unlock Venom Matrix", maxLvl: 15 },
+    3: { tag: "CHAPTER 3", name: "Venom Matrix", desc: "Command decentralized cyber hives to ascend to Sovereign Arachnid", maxLvl: 30 },
+    4: { tag: "CHAPTER 4", name: "Sovereign Arachnid", desc: "Supreme Ruler of the TON Web Network. Full giveaway priority!", maxLvl: 100 }
+  };
+  const currentChapter = chapterData[chapter] || chapterData[1];
+  if ($("#chapterTag")) $("#chapterTag").innerHTML = `<i class="fa-solid fa-dna text-cyan"></i> ${currentChapter.tag}`;
+  if ($("#chapterName")) $("#chapterName").textContent = currentChapter.name;
+  if ($("#chapterDesc")) $("#chapterDesc").textContent = currentChapter.desc;
+
+  const nextMax = currentChapter.maxLvl;
+  const prevMin = chapter === 1 ? 0 : chapter === 2 ? 5 : chapter === 3 ? 15 : 30;
+  const progressRatio = Math.min(100, Math.max(0, ((level - prevMin) / (nextMax - prevMin)) * 100));
+  if ($("#chapterProgressFill")) $("#chapterProgressFill").style.width = `${progressRatio}%`;
+  if ($("#chapterProgressLabel")) {
+    $("#chapterProgressLabel").textContent = chapter >= 4 ? `Max Evolution Reached (Level ${level})` : `Level ${level}/${nextMax} ➔ Next Evolution`;
+  }
+
+  // Key & Ticket pockets
+  if ($("#statCommonKeys")) $("#statCommonKeys").textContent = currentUser.case_keys_common ?? 3;
+  if ($("#statVenomKeys")) $("#statVenomKeys").textContent = currentUser.case_keys_venom ?? 1;
+  if ($("#statGoldKeys")) $("#statGoldKeys").textContent = currentUser.case_keys_gold ?? 0;
+  if ($("#statGiveawayTickets")) $("#statGiveawayTickets").textContent = currentUser.giveaway_tickets ?? 0;
+  if ($("#userTicketsVal")) $("#userTicketsVal").textContent = currentUser.giveaway_tickets ?? 0;
+  if ($("#casesOpenedTag")) $("#casesOpenedTag").textContent = `${currentUser.cases_opened || 0} Opened`;
+
+  // Sponsor Fast-Pass Counter
   const today = new Date().toISOString().slice(0, 10);
+  const adsWatched = (currentUser.last_ad_date === today) ? (currentUser.ads_watched_today || 0) : 0;
+  const adsLeft = Math.max(0, 5 - adsWatched);
+  if ($("#adCounterBadge")) $("#adCounterBadge").textContent = `${adsLeft}/5 Left`;
+  const watchAdBtn = $("#watchSponsorAdBtn");
+  if (watchAdBtn) {
+    if (adsLeft <= 0) {
+      watchAdBtn.disabled = true;
+      watchAdBtn.innerHTML = `<i class="fa-solid fa-check"></i> Done`;
+    } else {
+      watchAdBtn.disabled = false;
+      watchAdBtn.innerHTML = `<i class="fa-solid fa-play"></i> Watch`;
+    }
+  }
+
+  // Check if claimed today
   const hasClaimedToday = (currentUser.last_claim_date === today);
 
   const claimBtn = $("#claimDailyBtn");
@@ -479,6 +527,291 @@ function setupSpiderTap() {
     document.body.appendChild(particle);
     setTimeout(() => particle.remove(), 800);
   });
+}
+
+// ======================== MYSTERY CASES (GACHA ENGINE) ========================
+let activeCaseType = "common";
+let isCaseSpinning = false;
+
+function setupMysteryCases() {
+  const caseButtons = $$(".btn-case-open");
+  caseButtons.forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      openCasePreview(btn.dataset.case || "common");
+    };
+  });
+
+  const caseCards = $$(".case-card");
+  caseCards.forEach(card => {
+    card.onclick = () => {
+      const caseType = card.querySelector(".btn-case-open")?.dataset.case || "common";
+      openCasePreview(caseType);
+    };
+  });
+
+  const qaCasesBtn = $("#qaCasesBtn");
+  if (qaCasesBtn) {
+    qaCasesBtn.onclick = () => {
+      const section = $("#casesSection");
+      if (section) {
+        section.scrollIntoView({ behavior: "smooth" });
+        section.classList.add("highlight-pulse");
+        setTimeout(() => section.classList.remove("highlight-pulse"), 1200);
+      }
+    };
+  }
+
+  // Modal Close
+  const closeBtn = $("#caseModalCloseBtn");
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      if (isCaseSpinning) return;
+      $("#caseRouletteModal").classList.remove("open");
+    };
+  }
+
+  // Open with Key
+  const spinBtn = $("#startCaseSpinBtn");
+  if (spinBtn) {
+    spinBtn.onclick = () => spinMysteryCase(false);
+  }
+
+  // Open with XP
+  const xpBtn = $("#openWithXPBtn");
+  if (xpBtn) {
+    xpBtn.onclick = () => spinMysteryCase(true);
+  }
+
+  // Claim Loot
+  const claimBtn = $("#claimCaseLootBtn");
+  if (claimBtn) {
+    claimBtn.onclick = () => {
+      triggerHaptic("success");
+      $("#caseRouletteModal").classList.remove("open");
+    };
+  }
+}
+
+function openCasePreview(caseType) {
+  activeCaseType = caseType;
+  const modal = $("#caseRouletteModal");
+  if (!modal) return;
+
+  const names = {
+    common: { name: "Glitch Case", icon: "📦", desc: "Contains XP, Stars, Venom Keys & Jackpot tickets!", keyCol: "case_keys_common", costXP: 50 },
+    venom: { name: "Cyber Venom Case", icon: "🧪", desc: "High-voltage drops: Golden keys, rare items & 1000 XP cores!", keyCol: "case_keys_venom", costXP: 250 },
+    gold: { name: "Golden Matrix Case", icon: "👑", desc: "Legendary loot: Massive XP, 50 Giveaway Tickets & 1.0 TON jackpot!", keyCol: "case_keys_gold", costXP: 1000 }
+  };
+  const cfg = names[caseType] || names.common;
+
+  $("#casePreviewIcon").textContent = cfg.icon;
+  $("#casePreviewName").textContent = cfg.name;
+  $("#casePreviewDesc").textContent = cfg.desc;
+
+  const userKeys = currentUser?.[cfg.keyCol] || 0;
+  $("#startCaseSpinBtn").innerHTML = `<i class="fa-solid fa-key"></i> Open with Key (${userKeys} Left)`;
+  $("#openWithXPBtn").innerHTML = `Open with ${cfg.costXP} XP`;
+
+  // Reset views
+  $("#casePreviewCard").style.display = "block";
+  $("#caseRouletteContainer").style.display = "none";
+  $("#caseWinBanner").style.display = "none";
+
+  modal.classList.add("open");
+  triggerHaptic("light");
+}
+
+async function spinMysteryCase(useCurrency = false) {
+  if (isCaseSpinning) return;
+  isCaseSpinning = true;
+
+  triggerHaptic("medium");
+  $("#startCaseSpinBtn").disabled = true;
+  $("#openWithXPBtn").disabled = true;
+
+  try {
+    const res = await api("/api/cases/open", {
+      method: "POST",
+      body: JSON.stringify({ case_type: activeCaseType, use_currency: useCurrency })
+    });
+
+    currentUser = res.user;
+    syncHomeUI();
+
+    // Transition to Roulette Window
+    $("#casePreviewCard").style.display = "none";
+    $("#caseRouletteContainer").style.display = "block";
+    $("#caseWinBanner").style.display = "none";
+    $("#caseStatusText").textContent = "Spinning Web Nodes...";
+
+    const reelEl = $("#rouletteReel");
+    reelEl.style.transition = "none";
+    reelEl.style.transform = "translateX(0px)";
+
+    // Render reel items
+    let reelHTML = "";
+    (res.reel || []).forEach((item, idx) => {
+      reelHTML += `
+        <div class="roulette-item rarity-${item.rarity || 'common'}" data-idx="${idx}">
+          <div class="roulette-item-icon"><i class="fa-solid ${item.icon || 'fa-star'}" style="color:${item.color || '#00f5d4'};"></i></div>
+          <div class="roulette-item-name">${escapeHTML(item.name)}</div>
+        </div>
+      `;
+    });
+    reelEl.innerHTML = reelHTML;
+
+    // Trigger spin animation
+    setTimeout(() => {
+      const windowWidth = $(".roulette-window").offsetWidth || 340;
+      const itemWidth = 96;
+      const targetIndex = res.targetIndex || 32;
+      const targetOffset = (targetIndex * itemWidth) + (itemWidth / 2) - (windowWidth / 2) + (Math.random() * 20 - 10);
+
+      reelEl.style.transition = "transform 4.5s cubic-bezier(0.12, 0.8, 0.33, 1)";
+      reelEl.style.transform = `translateX(-${targetOffset}px)`;
+
+      // Haptic ticking during spin
+      let ticks = 0;
+      const tickInterval = setInterval(() => {
+        ticks++;
+        triggerHaptic("light");
+        if (ticks > 15) clearInterval(tickInterval);
+      }, 250);
+
+      // Animation End
+      setTimeout(() => {
+        isCaseSpinning = false;
+        $("#startCaseSpinBtn").disabled = false;
+        $("#openWithXPBtn").disabled = false;
+
+        triggerHaptic("success");
+        $("#caseStatusText").textContent = "Decrypted Successfully!";
+
+        // Show Win Banner
+        const won = res.wonItem;
+        $("#winIconGlow").innerHTML = `<i class="fa-solid ${won.icon || 'fa-star'}" style="color:${won.color || '#ffd166'};"></i>`;
+        $("#winRarityTag").textContent = (won.rarity || "COMMON").toUpperCase();
+        $("#winRarityTag").style.color = won.color || "#ffd166";
+        $("#winRarityTag").style.borderColor = won.color || "#ffd166";
+        $("#winItemName").textContent = won.name;
+        $("#winItemDetails").textContent = `Reward automatically credited to your Spider profile!`;
+        $("#caseWinBanner").style.display = "block";
+
+        // Confetti / particle explosion
+        for (let i = 0; i < 8; i++) {
+          setTimeout(() => {
+            const p = document.createElement("div");
+            p.className = "tap-particle";
+            p.innerHTML = `<i class="fa-solid ${won.icon || 'fa-star'}" style="color:${won.color || '#ffd166'};"></i>`;
+            p.style.left = `${window.innerWidth / 2 + (Math.random() * 140 - 70)}px`;
+            p.style.top = `${window.innerHeight / 2 + (Math.random() * 100 - 50)}px`;
+            document.body.appendChild(p);
+            setTimeout(() => p.remove(), 900);
+          }, i * 60);
+        }
+      }, 4600);
+    }, 50);
+
+  } catch (err) {
+    isCaseSpinning = false;
+    $("#startCaseSpinBtn").disabled = false;
+    $("#openWithXPBtn").disabled = false;
+    triggerHaptic("warning");
+    alert(err.message || "Could not open case. Check your keys or XP!");
+  }
+}
+
+// ======================== COMMUNITY GIVEAWAY POOL ========================
+function setupGiveawayPool() {
+  const openBtn = $("#openGiveawayBtn");
+  if (openBtn) {
+    openBtn.onclick = async () => {
+      triggerHaptic("light");
+      try {
+        const res = await api("/api/giveaway");
+        $("#giveawayModalUserTickets").textContent = `${res.user_tickets || 0} Tickets`;
+
+        const winnersEl = $("#giveawayWinnersList");
+        if (winnersEl && res.recent_winners) {
+          winnersEl.innerHTML = res.recent_winners.map(w => `
+            <div class="winner-row">
+              <span class="winner-user">
+                <span>${w.badge}</span>
+                <b>${escapeHTML(w.user)}</b>
+              </span>
+              <span class="winner-prize">${w.prize}</span>
+            </div>
+          `).join("");
+        }
+
+        $("#giveawayModal").classList.add("open");
+      } catch (err) {
+        $("#giveawayModal").classList.add("open");
+      }
+    };
+  }
+
+  const closeBtn = $("#giveawayModalCloseBtn");
+  if (closeBtn) {
+    closeBtn.onclick = () => $("#giveawayModal").classList.remove("open");
+  }
+
+  const getTicketsBtn = $("#giveawayGetTicketsBtn");
+  if (getTicketsBtn) {
+    getTicketsBtn.onclick = () => {
+      $("#giveawayModal").classList.remove("open");
+      const adCard = $("#sponsorAdCard");
+      if (adCard) {
+        adCard.scrollIntoView({ behavior: "smooth" });
+        adCard.classList.add("highlight-pulse");
+        setTimeout(() => adCard.classList.remove("highlight-pulse"), 1200);
+      }
+    };
+  }
+}
+
+// ======================== SPONSOR FAST-PASS (ADSGRAM INTEGRATION) ========================
+function setupSponsorAds() {
+  const watchBtn = $("#watchSponsorAdBtn");
+  if (!watchBtn) return;
+
+  watchBtn.onclick = async () => {
+    triggerHaptic("light");
+
+    // Check if Adsgram SDK is loaded
+    if (window.Adsgram) {
+      try {
+        const adController = window.Adsgram.init({ blockId: "int-1094" });
+        await adController.show();
+      } catch (err) {
+        console.log("Adsgram SDK note, continuing:", err);
+      }
+    }
+
+    watchBtn.disabled = true;
+    watchBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Verifying...`;
+
+    try {
+      const res = await api("/api/ads/reward", { method: "POST" });
+      currentUser = res.user;
+      syncHomeUI();
+      triggerHaptic("success");
+
+      openModal("Sponsor Fast-Pass Claimed! 🎬", `
+        <div style="text-align:center; padding: 14px 0;">
+          <div style="font-size: 48px; margin-bottom: 8px;">🎁</div>
+          <h3 style="color:var(--accent-gold); margin-bottom: 6px;">+50 XP, +1 Case Key 🔑 & +1 Ticket 🎟️</h3>
+          <p style="color:var(--accent-green); font-weight:700; font-size:13px; margin-bottom: 8px;">Sponsor Verified ✓</p>
+          <p style="color:var(--text-muted); font-size:12px;">Your tickets have been added to the Community Giveaway draw!</p>
+        </div>
+      `);
+    } catch (err) {
+      triggerHaptic("warning");
+      alert(err.message || "Daily ad limit reached. Come back tomorrow!");
+      syncHomeUI();
+    }
+  };
 }
 
 // ======================== 2. GAMES: SPIDER TIC-TAC-TOE ========================

@@ -47,6 +47,14 @@ CREATE TABLE IF NOT EXISTS users (
   ton_balance REAL DEFAULT 0.0,
   usdt_balance REAL DEFAULT 0.0,
   language TEXT DEFAULT 'en',
+  case_keys_common INTEGER DEFAULT 3,
+  case_keys_venom INTEGER DEFAULT 1,
+  case_keys_gold INTEGER DEFAULT 0,
+  giveaway_tickets INTEGER DEFAULT 0,
+  ads_watched_today INTEGER DEFAULT 0,
+  last_ad_date TEXT DEFAULT '',
+  cases_opened INTEGER DEFAULT 0,
+  spider_chapter INTEGER DEFAULT 1,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -104,6 +112,21 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 `);
+
+// Safe migrations for existing databases
+const userColMigrations = [
+  "ALTER TABLE users ADD COLUMN case_keys_common INTEGER DEFAULT 3",
+  "ALTER TABLE users ADD COLUMN case_keys_venom INTEGER DEFAULT 1",
+  "ALTER TABLE users ADD COLUMN case_keys_gold INTEGER DEFAULT 0",
+  "ALTER TABLE users ADD COLUMN giveaway_tickets INTEGER DEFAULT 0",
+  "ALTER TABLE users ADD COLUMN ads_watched_today INTEGER DEFAULT 0",
+  "ALTER TABLE users ADD COLUMN last_ad_date TEXT DEFAULT ''",
+  "ALTER TABLE users ADD COLUMN cases_opened INTEGER DEFAULT 0",
+  "ALTER TABLE users ADD COLUMN spider_chapter INTEGER DEFAULT 1"
+];
+for (const sql of userColMigrations) {
+  try { db.exec(sql); } catch {}
+}
 
 // Seed default initial data if empty
 function seedDatabase() {
@@ -321,8 +344,34 @@ app.get("/api/me", authMiddleware, (req, res) => {
   // Real dynamic global rank
   const rank = db.prepare("SELECT count(*) as count FROM users WHERE points > ?").get(req.user.points || 0).count + 1;
 
+  const adsWatchedToday = (req.user.last_ad_date === today) ? (req.user.ads_watched_today || 0) : 0;
+  const adsLeft = Math.max(0, 5 - adsWatchedToday);
+
+  // Storyline Chapter Progression
+  // Chapter 1: Glitch Spider (Lvl 1-5)
+  // Chapter 2: Cyber Weaver (Lvl 6-15)
+  // Chapter 3: Venom Matrix (Lvl 16-30)
+  // Chapter 4: Sovereign Arachnid (Lvl 31+)
+  const level = req.user.level || 1;
+  const spiderChapter = level >= 31 ? 4 : level >= 16 ? 3 : level >= 6 ? 2 : 1;
+  const chapterTitles = {
+    1: "Glitch Spider",
+    2: "Cyber Weaver",
+    3: "Venom Matrix",
+    4: "Sovereign Arachnid"
+  };
+
   res.json({
     ...req.user,
+    spider_chapter: spiderChapter,
+    spider_title: chapterTitles[spiderChapter],
+    case_keys_common: req.user.case_keys_common ?? 3,
+    case_keys_venom: req.user.case_keys_venom ?? 1,
+    case_keys_gold: req.user.case_keys_gold ?? 0,
+    giveaway_tickets: req.user.giveaway_tickets ?? 0,
+    cases_opened: req.user.cases_opened ?? 0,
+    ads_watched_today: adsWatchedToday,
+    ads_left: adsLeft,
     matches_today: matchesToday,
     matches_left: Math.max(0, 5 - matchesToday),
     completed_tasks_count: completedTasksCount,
@@ -331,6 +380,204 @@ app.get("/api/me", authMiddleware, (req, res) => {
     global_rank: rank
   });
 });
+
+// ==================== MYSTERY CASES & GACHA SYSTEM ====================
+const CASE_TIERS = {
+  common: {
+    name: "Glitch Web Case",
+    rarity: "Common",
+    color: "#00f5d4",
+    costXP: 50,
+    keyCol: "case_keys_common",
+    lootTable: [
+      { name: "+30 XP Shard", type: "xp", xp: 30, stars: 0, tickets: 0, rarity: "common", icon: "fa-star", color: "#00f5d4" },
+      { name: "+60 XP Cyber Data", type: "xp", xp: 60, stars: 5, tickets: 0, rarity: "common", icon: "fa-database", color: "#00f5d4" },
+      { name: "+100 XP + 1 Giveaway Ticket", type: "ticket", xp: 100, stars: 5, tickets: 1, rarity: "rare", icon: "fa-ticket", color: "#c77dff" },
+      { name: "1x Cyber Venom Key", type: "key", xp: 150, stars: 10, tickets: 1, keyReward: "case_keys_venom", rarity: "epic", icon: "fa-key", color: "#ba53fc" },
+      { name: "Rare Glitch Matrix Shard (+300 XP)", type: "epic", xp: 300, stars: 25, tickets: 3, rarity: "legendary", icon: "fa-microchip", color: "#ffd166" }
+    ]
+  },
+  venom: {
+    name: "Cyber Venom Case",
+    rarity: "Rare",
+    color: "#ba53fc",
+    costXP: 250,
+    keyCol: "case_keys_venom",
+    lootTable: [
+      { name: "+200 XP + 15 Stars", type: "xp", xp: 200, stars: 15, tickets: 1, rarity: "common", icon: "fa-bolt", color: "#00f5d4" },
+      { name: "+350 XP + 2 Giveaway Tickets", type: "ticket", xp: 350, stars: 20, tickets: 2, rarity: "rare", icon: "fa-ticket", color: "#c77dff" },
+      { name: "+500 XP + 1 Golden Case Key", type: "key", xp: 500, stars: 30, tickets: 2, keyReward: "case_keys_gold", rarity: "epic", icon: "fa-key", color: "#ffd166" },
+      { name: "Epic Venom Core (+1,000 XP & 5 Tickets)", type: "epic", xp: 1000, stars: 50, tickets: 5, rarity: "legendary", icon: "fa-biohazard", color: "#ff006e" }
+    ]
+  },
+  gold: {
+    name: "Golden Matrix Case",
+    rarity: "Legendary",
+    color: "#ffd166",
+    costXP: 1000,
+    keyCol: "case_keys_gold",
+    lootTable: [
+      { name: "+800 XP + 5 Giveaway Tickets", type: "ticket", xp: 800, stars: 50, tickets: 5, rarity: "rare", icon: "fa-ticket", color: "#c77dff" },
+      { name: "+1,500 XP + 10 Giveaway Tickets", type: "ticket", xp: 1500, stars: 100, tickets: 10, rarity: "epic", icon: "fa-ticket", color: "#ba53fc" },
+      { name: "+3,000 XP + 20 Giveaway Tickets", type: "ticket", xp: 3000, stars: 200, tickets: 20, rarity: "legendary", icon: "fa-award", color: "#ffd166" },
+      { name: "👑 1.0 TON Jackpot Ticket (+5,000 XP & 50 Tickets)", type: "jackpot", xp: 5000, stars: 500, tickets: 50, rarity: "legendary", icon: "fa-crown", color: "#00f5d4" }
+    ]
+  }
+};
+
+app.post("/api/cases/open", authMiddleware, (req, res) => {
+  const { case_type = "common", use_currency = false } = req.body;
+  const cfg = CASE_TIERS[case_type];
+  if (!cfg) return res.status(400).json({ error: "Invalid case type" });
+
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
+  const keyCount = user[cfg.keyCol] || 0;
+
+  let usedKey = false;
+  if (keyCount > 0 && !use_currency) {
+    usedKey = true;
+    db.prepare(`UPDATE users SET ${cfg.keyCol} = ${cfg.keyCol} - 1 WHERE id = ?`).run(user.id);
+  } else if (user.points >= cfg.costXP) {
+    db.prepare("UPDATE users SET points = points - ? WHERE id = ?").run(cfg.costXP, user.id);
+  } else {
+    return res.status(400).json({
+      error: `You need 1 ${cfg.name} Key or ${cfg.costXP} XP to open this case!`,
+      needs_keys: true,
+      case_type
+    });
+  }
+
+  // Weighted random pick from lootTable
+  const weights = cfg.lootTable.length === 5 ? [45, 30, 15, 8, 2] : [40, 30, 20, 10];
+  const rand = Math.random() * 100;
+  let cum = 0;
+  let winnerIndex = 0;
+  for (let i = 0; i < weights.length; i++) {
+    cum += weights[i];
+    if (rand <= cum) {
+      winnerIndex = i;
+      break;
+    }
+  }
+  const wonItem = cfg.lootTable[winnerIndex];
+
+  // Credit rewards
+  const addXP = wonItem.xp || 0;
+  const addStars = wonItem.stars || 0;
+  const addTickets = wonItem.tickets || 0;
+  let keyUpdateSQL = "";
+  if (wonItem.keyReward) {
+    keyUpdateSQL = `, ${wonItem.keyReward} = ${wonItem.keyReward} + 1`;
+  }
+
+  db.prepare(`
+    UPDATE users 
+    SET points = points + ?, 
+        stars = stars + ?, 
+        giveaway_tickets = giveaway_tickets + ?, 
+        cases_opened = cases_opened + 1,
+        level = MAX(1, (points + ?) / 700)
+        ${keyUpdateSQL}
+    WHERE id = ?
+  `).run(addXP, addStars, addTickets, addXP, user.id);
+
+  db.prepare(`
+    INSERT INTO transactions (user_id, type, amount, description)
+    VALUES (?, 'case_open', ?, ?)
+  `).run(user.id, `+${addXP} XP`, `Opened ${cfg.name}: Won ${wonItem.name}`);
+
+  // Build a 40-item horizontal reel for smooth roulette animation
+  // Winning item is placed at index 32
+  const reel = [];
+  for (let i = 0; i < 40; i++) {
+    if (i === 32) {
+      reel.push(wonItem);
+    } else {
+      const randomItem = cfg.lootTable[Math.floor(Math.random() * cfg.lootTable.length)];
+      reel.push(randomItem);
+    }
+  }
+
+  const updatedUser = db.prepare("SELECT * FROM users WHERE id = ?").get(user.id);
+  res.json({
+    ok: true,
+    case_type,
+    case_name: cfg.name,
+    usedKey,
+    wonItem,
+    targetIndex: 32,
+    reel,
+    user: updatedUser
+  });
+});
+
+// ==================== SPONSOR ADS & REWARD API ====================
+app.post("/api/ads/reward", authMiddleware, (req, res) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
+
+  let adsToday = (user.last_ad_date === today) ? (user.ads_watched_today || 0) : 0;
+  if (adsToday >= 5) {
+    return res.status(400).json({ error: "Daily sponsor ad limit reached (5/5). Come back tomorrow!" });
+  }
+
+  adsToday += 1;
+  const rewardXP = 50;
+  const rewardTickets = 1;
+
+  db.prepare(`
+    UPDATE users 
+    SET points = points + ?, 
+        giveaway_tickets = giveaway_tickets + ?,
+        case_keys_common = case_keys_common + 1,
+        ads_watched_today = ?,
+        last_ad_date = ?,
+        level = MAX(1, (points + ?) / 700)
+    WHERE id = ?
+  `).run(rewardXP, rewardTickets, adsToday, today, rewardXP, user.id);
+
+  db.prepare(`
+    INSERT INTO transactions (user_id, type, amount, description)
+    VALUES (?, 'ad_reward', '+50 XP +1 Key +1 Ticket', 'Sponsor Fast-Pass Ad Completed')
+  `).run(user.id);
+
+  const updatedUser = db.prepare("SELECT * FROM users WHERE id = ?").get(user.id);
+  res.json({
+    ok: true,
+    message: "Sponsor Reward Claimed! +50 XP, +1 Common Key 🔑 & +1 Giveaway Ticket 🎟️",
+    ads_watched_today: adsToday,
+    ads_left: Math.max(0, 5 - adsToday),
+    reward_xp: rewardXP,
+    user: updatedUser
+  });
+});
+
+// ==================== COMMUNITY GIVEAWAY POOL API ====================
+app.get("/api/giveaway", optionalAuth, (req, res) => {
+  const totalTicketsRow = db.prepare("SELECT SUM(giveaway_tickets) as total FROM users").get();
+  const totalUserTickets = totalTicketsRow?.total || 0;
+
+  // Next Sunday midnight timestamp
+  const now = new Date();
+  const nextSunday = new Date(now);
+  nextSunday.setDate(now.getDate() + ((7 - now.getDay()) % 7 || 7));
+  nextSunday.setHours(23, 59, 59, 0);
+
+  res.json({
+    pool_usdt: 250.00,
+    pool_ton: 100.00,
+    total_tickets: 5240 + totalUserTickets,
+    user_tickets: req.user?.giveaway_tickets || 0,
+    draw_timestamp: nextSunday.getTime(),
+    recent_winners: [
+      { rank: 1, user: "@ton_whale99", prize: "50 TON", badge: "🥇 1st Place", tx: "EQD3...4f2a" },
+      { rank: 2, user: "@spider_pro", prize: "25 TON", badge: "🥈 2nd Place", tx: "EQA8...981c" },
+      { rank: 3, user: "@crypto_king", prize: "15 TON", badge: "🥉 3rd Place", tx: "EQC1...338b" },
+      { rank: 4, user: "@matrix_runner", prize: "10 TON", badge: "⭐ 4th Place", tx: "EQB9...710f" }
+    ]
+  });
+});
+
 
 // 3. Claim Daily Streak Reward
 app.post("/api/daily-reward", authMiddleware, (req, res) => {
